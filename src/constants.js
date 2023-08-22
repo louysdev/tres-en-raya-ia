@@ -3,6 +3,11 @@ export const TURNS = {
   O: "⭕️",
 };
 
+export const GAME_MODE = {
+  MACHINE: "MACHINE",
+  TWO_PLAYER: "TWO_PLAYER",
+};
+
 export const WINNING_COMBINATIONS = [
   [0, 1, 2], // Horizontal
   [3, 4, 5], // Horizontal

@@ -10,7 +10,6 @@ export const checkWinnerFrom = (boartToCheck) => {
       boartToCheck[a] === boartToCheck[b] && // Si la primera posicion es igual a la segunda
       boartToCheck[a] === boartToCheck[c] // Si la primera posicion es igual a la tercera
     ) {
-      console.log(boartToCheck[a]);
       return boartToCheck[a]; // Devuelve x u o
     }
   }
