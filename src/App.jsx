@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { Square } from "./components/Square";
-import { TURNS, WINNING_COMBINATIONS, GAME_MODE } from "./constants";
+import { TURNS, GAME_MODE } from "./constants";
 import { checkWinnerFrom, checkEndGame } from "./logic/board";
 import { WinnerModal } from "./components/WinnerModal";
 import { resetGameStorage, saveGameStorage } from "./logic/storage/index";
 import "./App.css";
+import { MenuModal } from "./components/MenuModal";
+import { RefreshIcon } from "./icons/RefreshIcon";
+import { SettingsIcon } from "./icons/SettingsIcon";
 
 function App() {
+  const [isMachineTurn, setIsMachineTurn] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(TURNS.X);
   // Manera correcta de insertar el localstorage en un estado
   const [board, setBoard] = useState(() => {
@@ -20,14 +24,13 @@ function App() {
   });
   const [winner, setWinner] = useState(null); // null es que no hay ganador, false hay un empate
   const [gameMode, setGameMode] = useState(GAME_MODE.TWO_PLAYER);
+  const [menu, setMenu] = useState(false);
 
   const handlePlayerSelect = (player) => {
-    console.log("use");
     setSelectedPlayer(player);
     setTurn(player);
     setBoard(Array(9).fill(null)); // Reinicia el tablero cuando se cambia de jugador
-    console.log(gameMode);
-    console.log(player);
+    setMenu(false);
   };
 
   const updateBoard = (index) => {
@@ -39,44 +42,6 @@ function App() {
 
     const newTurn = turn === TURNS.X ? TURNS.O : TURNS.X;
     setTurn(newTurn);
-
-    if (
-      (newTurn === TURNS.O || newTurn === TURNS.X) &&
-      gameMode === GAME_MODE.MACHINE
-    ) {
-      const player = selectedPlayer === TURNS.X ? TURNS.X : TURNS.O;
-      const machine = player === TURNS.X ? TURNS.O : TURNS.X;
-
-      const emptyCells = newBoard.reduce((acc, cell, idx) => {
-        if (cell === null) {
-          acc.push(idx);
-        }
-        return acc;
-      }, []);
-
-      if (emptyCells.length > 0) {
-        // Encuentra la posición de la última jugada de "X"
-        const lastXPosition = newBoard.indexOf(player);
-
-        // Calcula la distancia de cada celda vacía a la última jugada de "X"
-        const distances = emptyCells.map((emptyCell) => {
-          const row1 = Math.floor(lastXPosition / 3);
-          const col1 = lastXPosition % 3;
-          const row2 = Math.floor(emptyCell / 3);
-          const col2 = emptyCell % 3;
-          return Math.abs(row1 - row2) + Math.abs(col1 - col2);
-        });
-
-        // Encuentra la celda vacía más cercana a la última jugada de "X"
-        const closestEmptyCellIndex =
-          emptyCells[distances.indexOf(Math.min(...distances))];
-
-        // Realiza la jugada de "0" en la celda más cercana
-        newBoard[closestEmptyCellIndex] = machine;
-        setBoard(newBoard);
-        setTurn(player);
-      }
-    }
 
     // Guardar partida
     saveGameStorage({
@@ -91,6 +56,8 @@ function App() {
     } else if (checkEndGame(newBoard)) {
       return setWinner(false);
     }
+
+    setIsMachineTurn(true);
   };
 
   const resetGame = () => {
@@ -110,29 +77,67 @@ function App() {
       setGameMode(GAME_MODE.TWO_PLAYER);
       setBoard(Array(9).fill(null));
     }
+
+    setMenu(false);
   };
+
+  useEffect(() => {
+    if (gameMode === GAME_MODE.MACHINE && isMachineTurn) {
+      const player = selectedPlayer;
+      const machine = player === TURNS.X ? TURNS.O : TURNS.X;
+
+      const emptyCells = board.reduce((acc, cell, idx) => {
+        if (cell === null) {
+          acc.push(idx);
+        }
+        return acc;
+      }, []);
+
+      if (emptyCells.length > 0) {
+        // Encuentra la posición de la última jugada de "X"
+        const lastXPosition = board.indexOf(player);
+
+        // Calcula la distancia de cada celda vacía a la última jugada de "X"
+        const distances = emptyCells.map((emptyCell) => {
+          const row1 = Math.floor(lastXPosition / 3);
+          const col1 = lastXPosition % 3;
+          const row2 = Math.floor(emptyCell / 3);
+          const col2 = emptyCell % 3;
+          return Math.abs(row1 - row2) + Math.abs(col1 - col2);
+        });
+
+        // Encuentra la celda vacía más cercana a la última jugada de "X"
+        const closestEmptyCellIndex =
+          emptyCells[distances.indexOf(Math.min(...distances))];
+
+        // Simula el retraso de 1 segundo antes de que la máquina juegue
+        const delay = 1000; // 1000 milisegundos (1 segundo)
+        setTimeout(() => {
+          const newBoard = [...board];
+          newBoard[closestEmptyCellIndex] = machine;
+          setBoard(newBoard);
+          setTurn(player);
+          setIsMachineTurn(false); // Establece el turno de la máquina como falso
+          // Guardar partida nuevamente después de la jugada de "0"
+          saveGameStorage({
+            board: newBoard,
+            turn: player,
+          });
+        }, delay);
+      }
+    }
+  }, [board, gameMode, isMachineTurn, selectedPlayer]);
 
   return (
     <main className="board">
       <h1>Tres en raya</h1>
-      <button onClick={resetGame}>Reiniciar juego</button>
 
       <div>
-        <button onClick={() => selectGameMode(GAME_MODE.MACHINE)}>
-          Contra la maquina
+        <button onClick={resetGame}>
+          <RefreshIcon />
         </button>
-        <button onClick={() => selectGameMode(GAME_MODE.TWO_PLAYER)}>
-          Dos jugadores
-        </button>
-      </div>
-
-      {/* Seccion para seleccionar jugador */}
-      <div>
-        <button onClick={() => handlePlayerSelect(TURNS.X)}>
-          Jugar como X
-        </button>
-        <button onClick={() => handlePlayerSelect(TURNS.O)}>
-          Jugar como O
+        <button onClick={() => setMenu(!menu)}>
+          <SettingsIcon />
         </button>
       </div>
 
@@ -156,24 +161,30 @@ function App() {
       {/* Seccion para el ganador */}
       <section>
         {winner !== null && (
-          <section className="winner">
-            <div className="text">
-              <h2>{winner === false ? "Empate" : `Gano:`}</h2>
-
-              <header className="win">
-                {winner && <Square>{winner}</Square>}
-              </header>
-
-              <footer>
-                <button onClick={resetGame}>Empezar de nuevo</button>
-              </footer>
-            </div>
-          </section>
+          <WinnerModal winner={winner} resetGame={resetGame} />
         )}
       </section>
 
-      {/* Seccion del modal del ganador */}
-      <WinnerModal winner={winner} resetGame={resetGame} />
+      {/* Seccion para el menu */}
+      <section>
+        {menu === true && (
+          <MenuModal
+            selectGameMode={selectGameMode}
+            handlePlayerSelect={handlePlayerSelect}
+          />
+        )}
+      </section>
+
+      <footer
+        style={{
+          position: "absolute",
+          bottom: 0,
+          right: 0,
+          margin: "10px",
+        }}
+      >
+        <h5>Version 2.0</h5>
+      </footer>
     </main>
   );
 }

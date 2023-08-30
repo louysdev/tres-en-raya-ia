@@ -1,3 +1,5 @@
+import { RefreshIcon } from "../icons/RefreshIcon.jsx";
+import { SwipeIcon } from "../icons/SwipeIcon.jsx";
 import { Square } from "./Square.jsx";
 
 export const WinnerModal = ({ winner, resetGame }) => {
@@ -11,10 +13,18 @@ export const WinnerModal = ({ winner, resetGame }) => {
         <div className="text">
           <h2>{winnerText}</h2>
 
-          <header className="win">{winner && <Square>{winner}</Square>}</header>
+          <header className={winner && "win"}>
+            {winner === false ? (
+              <SwipeIcon width="50" height="50" />
+            ) : (
+              <Square>{winner}</Square>
+            )}
+          </header>
 
           <footer>
-            <button onClick={resetGame}>Empezar de nuevo</button>
+            <button onClick={resetGame}>
+              <RefreshIcon />
+            </button>
           </footer>
         </div>
       </section>
