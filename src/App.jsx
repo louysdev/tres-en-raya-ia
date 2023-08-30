@@ -81,6 +81,10 @@ function App() {
     setMenu(false);
   };
 
+  const exitMenu = () => {
+    setMenu(false);
+  };
+
   useEffect(() => {
     if (gameMode === GAME_MODE.MACHINE && isMachineTurn) {
       const player = selectedPlayer;
@@ -171,6 +175,7 @@ function App() {
           <MenuModal
             selectGameMode={selectGameMode}
             handlePlayerSelect={handlePlayerSelect}
+            exitMenu={exitMenu}
           />
         )}
       </section>
@@ -183,7 +188,7 @@ function App() {
           margin: "10px",
         }}
       >
-        <h5>Version 2.0</h5>
+        <h5>Version 2.1</h5>
       </footer>
     </main>
   );

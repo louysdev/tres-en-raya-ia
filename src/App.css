@@ -23,6 +23,15 @@
   cursor: pointer;
 }
 
+button.exit {
+  margin: 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-content: center;
+  border: none;
+}
+
 .board button:hover {
   background: #eee;
   color: #222;
@@ -53,7 +62,7 @@
 
 .square.is-selected {
   color: #fff;
-  background: #09f;
+  background: #fff;
 }
 
 .menu {
@@ -108,7 +117,6 @@
 .winner .win {
   margin: 0 auto;
   width: fit-content;
-  border: 2px solid #eee;
   border-radius: 10px;
   display: flex;
   gap: 15px;
