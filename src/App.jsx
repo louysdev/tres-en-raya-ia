@@ -34,38 +34,53 @@ function App() {
     setMenu(false);
   };
 
+  const saveWinningMoves = (winningMoves) => {
+    window.localStorage.setItem("winningMoves", JSON.stringify(winningMoves));
+  };
+  
+  const getWinningMoves = () => {
+    const savedWinningMoves = window.localStorage.getItem("winningMoves");
+    return savedWinningMoves ? JSON.parse(savedWinningMoves) : [];
+  };
+
   const updateBoard = (index) => {
-    if (board[index] !== null || winner || isBlocked) return;
-
-    // Bloquea los clics
-    setIsBlocked(true);
-
+    if (board[index] !== null || winner || (gameMode !== GAME_MODE.TWO_PLAYER && isBlocked)) return;
+  
     const newBoard = [...board];
     newBoard[index] = turn;
     setBoard(newBoard);
-
+  
     const newTurn = turn === TURNS.X ? TURNS.O : TURNS.X;
     setTurn(newTurn);
-
+  
     // Guardar partida
     saveGameStorage({
       board: newBoard,
       turn: newTurn,
     });
-
+  
     const newWinner = checkWinnerFrom(newBoard);
     if (newWinner) {
       confetti();
-      return setWinner(newWinner);
+      setWinner(newWinner);
+      if (newWinner === selectedPlayer) {
+        const winningMoves = getWinningMoves();
+        console.log("entro")
+        winningMoves.push(board);
+        saveWinningMoves(winningMoves);
+      }
     } else if (checkEndGame(newBoard)) {
       return setWinner(false);
     }
-
-    setIsMachineTurn(true);
-
-    setTimeout(() => {
-      setIsBlocked(false);
-    }, 1000);
+  
+    if (gameMode !== GAME_MODE.TWO_PLAYER) {
+      setIsBlocked(true);
+      setIsMachineTurn(true);
+  
+      setTimeout(() => {
+        setIsBlocked(false);
+      }, 1000);
+    }
   };
 
   const resetGame = () => {
@@ -95,11 +110,24 @@ function App() {
   };
 
   useEffect(() => {
-    if (gameMode === GAME_MODE.MACHINE && isMachineTurn) {
+    if (gameMode === GAME_MODE. MACHINE && isMachineTurn) {
       const player = selectedPlayer;
       const machine = player === TURNS.X ? TURNS.O : TURNS.X;
+      const winningMoves = getWinningMoves();
+      console.log(winningMoves);
   
       let move = null;
+
+      // Recorre las jugadas ganadoras del usuario
+      for (let winningMove of winningMoves) {
+        for (let i = 0; i < board.length; i++) {
+          if (board[i] === null && winningMove[i] === player) {
+            move = i;
+            break;
+          }
+        }
+        if (move !== null) break;
+      }
   
       // Recorre todas las combinaciones ganadoras
       for (let combination of WINNING_COMBINATIONS) {
@@ -157,7 +185,7 @@ function App() {
       }
   
       if (move !== null) {
-        const delay = 1000;
+        const delay = GAME_MODE.MACHINE ? 1000 : 0;
         setTimeout(() => {
           const newBoard = [...board];
           newBoard[move] = machine;
@@ -244,7 +272,7 @@ function App() {
           margin: "10px",
         }}
       >
-        <h5>Version 2.5</h5>
+        <h5>Version &#40;Beta 2.6&#41;</h5>
       </footer>
     </main>
   );
