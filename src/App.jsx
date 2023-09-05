@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import confetti from "canvas-confetti";
 import { Square } from "./components/Square";
-import { TURNS, GAME_MODE } from "./constants";
+import { TURNS, GAME_MODE, WINNING_COMBINATIONS } from "./constants";
 import { checkWinnerFrom, checkEndGame } from "./logic/board";
 import { WinnerModal } from "./components/WinnerModal";
 import { resetGameStorage, saveGameStorage } from "./logic/storage/index";
@@ -11,6 +11,7 @@ import { RefreshIcon } from "./icons/RefreshIcon";
 import { SettingsIcon } from "./icons/SettingsIcon";
 
 function App() {
+  const [isBlocked, setIsBlocked] = useState(false);
   const [isMachineTurn, setIsMachineTurn] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState(TURNS.X);
   // Manera correcta de insertar el localstorage en un estado
@@ -34,7 +35,10 @@ function App() {
   };
 
   const updateBoard = (index) => {
-    if (board[index] !== null || winner) return;
+    if (board[index] !== null || winner || isBlocked) return;
+
+    // Bloquea los clics
+    setIsBlocked(true);
 
     const newBoard = [...board];
     newBoard[index] = turn;
@@ -58,12 +62,17 @@ function App() {
     }
 
     setIsMachineTurn(true);
+
+    setTimeout(() => {
+      setIsBlocked(false);
+    }, 1000);
   };
 
   const resetGame = () => {
     setBoard(Array(9).fill(null));
     setTurn(selectedPlayer);
     setWinner(null);
+    setIsBlocked(false);
 
     // Borrar partida
     resetGameStorage();
@@ -89,44 +98,86 @@ function App() {
     if (gameMode === GAME_MODE.MACHINE && isMachineTurn) {
       const player = selectedPlayer;
       const machine = player === TURNS.X ? TURNS.O : TURNS.X;
-
-      const emptyCells = board.reduce((acc, cell, idx) => {
-        if (cell === null) {
-          acc.push(idx);
+  
+      let move = null;
+  
+      // Recorre todas las combinaciones ganadoras
+      for (let combination of WINNING_COMBINATIONS) {
+        // Si la máquina tiene dos en una fila, juega la tercera para ganar
+        if (board[combination[0]] === machine && board[combination[1]] === machine && board[combination[2]] === null) {
+          move = combination[2];
+          break;
         }
-        return acc;
-      }, []);
-
-      if (emptyCells.length > 0) {
-        // Encuentra la posición de la última jugada de "X"
-        const lastXPosition = board.indexOf(player);
-
-        // Calcula la distancia de cada celda vacía a la última jugada de "X"
-        const distances = emptyCells.map((emptyCell) => {
-          const row1 = Math.floor(lastXPosition / 3);
-          const col1 = lastXPosition % 3;
-          const row2 = Math.floor(emptyCell / 3);
-          const col2 = emptyCell % 3;
-          return Math.abs(row1 - row2) + Math.abs(col1 - col2);
-        });
-
-        // Encuentra la celda vacía más cercana a la última jugada de "X"
-        const closestEmptyCellIndex =
-          emptyCells[distances.indexOf(Math.min(...distances))];
-
-        // Simula el retraso de 1 segundo antes de que la máquina juegue
-        const delay = 1000; // 1000 milisegundos (1 segundo)
+        if (board[combination[1]] === machine && board[combination[2]] === machine && board[combination[0]] === null) {
+          move = combination[0];
+          break;
+        }
+        if (board[combination[0]] === machine && board[combination[2]] === machine && board[combination[1]] === null) {
+          move = combination[1];
+          break;
+        }
+  
+        // Si el jugador tiene dos en una fila, bloquea la tercera
+        if (board[combination[0]] === player && board[combination[1]] === player && board[combination[2]] === null) {
+          move = combination[2];
+          break;
+        }
+        if (board[combination[1]] === player && board[combination[2]] === player && board[combination[0]] === null) {
+          move = combination[0];
+          break;
+        }
+        if (board[combination[0]] === player && board[combination[2]] === player && board[combination[1]] === null) {
+          move = combination[1];
+          break;
+        }
+      }
+  
+      // Si no se encontró una jugada para ganar o bloquear al jugador, juega aleatoriamente
+      if (move === null) {
+        const emptyCells = board.reduce((acc, cell, idx) => {
+          if (cell === null) {
+            acc.push(idx);
+          }
+          return acc;
+        }, []);
+  
+        if (emptyCells.length > 0) {
+          const lastPlayerPosition = board.indexOf(player);
+  
+          const distances = emptyCells.map((emptyCell) => {
+            const row1 = Math.floor(lastPlayerPosition / 3);
+            const col1 = lastPlayerPosition % 3;
+            const row2 = Math.floor(emptyCell / 3);
+            const col2 = emptyCell % 3;
+            return Math.abs(row1 - row2) + Math.abs(col1 - col2);
+          });
+  
+          move = emptyCells[distances.indexOf(Math.min(...distances))];
+        }
+      }
+  
+      if (move !== null) {
+        const delay = 1000;
         setTimeout(() => {
           const newBoard = [...board];
-          newBoard[closestEmptyCellIndex] = machine;
+          newBoard[move] = machine;
           setBoard(newBoard);
           setTurn(player);
-          setIsMachineTurn(false); // Establece el turno de la máquina como falso
-          // Guardar partida nuevamente después de la jugada de "0"
+          setIsMachineTurn(false);
           saveGameStorage({
             board: newBoard,
             turn: player,
           });
+          setIsBlocked(false);
+
+          // Verificar si la máquina ha ganado después de su jugada
+        const newWinner = checkWinnerFrom(newBoard);
+        if (newWinner) {
+          confetti();
+          setWinner(newWinner);
+        } else if (checkEndGame(newBoard)) {
+          setWinner(false);
+        }
         }, delay);
       }
     }
@@ -149,7 +200,12 @@ function App() {
       <section className="game">
         {board.map((cell, index) => {
           return (
-            <Square key={index} index={index} updateBoard={updateBoard}>
+            <Square
+              isBlocked={isBlocked}
+              key={index}
+              index={index}
+              updateBoard={updateBoard}
+            >
               {board[index]}
             </Square>
           );
