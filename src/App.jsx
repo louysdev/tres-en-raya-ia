@@ -244,7 +244,7 @@ function App() {
           margin: "10px",
         }}
       >
-        <h5>Version 2.1</h5>
+        <h5>Version 2.5</h5>
       </footer>
     </main>
   );
