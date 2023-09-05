@@ -37,7 +37,7 @@ function App() {
   const saveWinningMoves = (winningMoves) => {
     window.localStorage.setItem("winningMoves", JSON.stringify(winningMoves));
   };
-  
+
   const getWinningMoves = () => {
     const savedWinningMoves = window.localStorage.getItem("winningMoves");
     return savedWinningMoves ? JSON.parse(savedWinningMoves) : [];
@@ -45,38 +45,40 @@ function App() {
 
   const updateBoard = (index) => {
     if (board[index] !== null || winner || (gameMode !== GAME_MODE.TWO_PLAYER && isBlocked)) return;
-  
+
     const newBoard = [...board];
     newBoard[index] = turn;
     setBoard(newBoard);
-  
+
     const newTurn = turn === TURNS.X ? TURNS.O : TURNS.X;
     setTurn(newTurn);
-  
+
     // Guardar partida
     saveGameStorage({
       board: newBoard,
       turn: newTurn,
     });
-  
+
     const newWinner = checkWinnerFrom(newBoard);
     if (newWinner) {
       confetti();
       setWinner(newWinner);
       if (newWinner === selectedPlayer) {
         const winningMoves = getWinningMoves();
-        console.log("entro")
-        winningMoves.push(board);
-        saveWinningMoves(winningMoves);
+        const isMoveAlreadySaved = winningMoves.some((savedMove) => JSON.stringify(savedMove) === JSON.stringify(board));
+        if (!isMoveAlreadySaved) {
+          winningMoves.push(board);
+          saveWinningMoves(winningMoves);
+        }
       }
     } else if (checkEndGame(newBoard)) {
       return setWinner(false);
     }
-  
+
     if (gameMode !== GAME_MODE.TWO_PLAYER) {
       setIsBlocked(true);
       setIsMachineTurn(true);
-  
+
       setTimeout(() => {
         setIsBlocked(false);
       }, 1000);
@@ -110,25 +112,44 @@ function App() {
   };
 
   useEffect(() => {
-    if (gameMode === GAME_MODE. MACHINE && isMachineTurn) {
+    if (gameMode === GAME_MODE.MACHINE && isMachineTurn) {
       const player = selectedPlayer;
       const machine = player === TURNS.X ? TURNS.O : TURNS.X;
-      const winningMoves = getWinningMoves();
-      console.log(winningMoves);
-  
+
       let move = null;
 
-      // Recorre las jugadas ganadoras del usuario
-      for (let winningMove of winningMoves) {
-        for (let i = 0; i < board.length; i++) {
-          if (board[i] === null && winningMove[i] === player) {
-            move = i;
-            break;
+      // Si no se encontró una jugada para ganar o bloquear al jugador, verifica las jugadas ganadoras del jugador
+      if (move === null) {
+        const winningMoves = getWinningMoves();
+
+        let maxSimilarity = 0;
+        let mostSimilarMove = null;
+
+        // Recorre las jugadas ganadoras del usuario
+        for (let winningMove of winningMoves) {
+          let similarity = 0;
+          for (let i = 0; i < board.length; i++) {
+            if (board[i] === player && winningMove[i] === player) {
+              similarity++;
+            }
+          }
+          if (similarity > maxSimilarity) {
+            maxSimilarity = similarity;
+            mostSimilarMove = winningMove;
           }
         }
-        if (move !== null) break;
+
+        // Si encontramos una jugada similar, hacemos la jugada que sigue en la jugada ganadora
+        if (mostSimilarMove !== null) {
+          for (let i = 0; i < board.length; i++) {
+            if (board[i] === null && mostSimilarMove[i] === player) {
+              move = i;
+              break;
+            }
+          }
+        }
       }
-  
+
       // Recorre todas las combinaciones ganadoras
       for (let combination of WINNING_COMBINATIONS) {
         // Si la máquina tiene dos en una fila, juega la tercera para ganar
@@ -144,7 +165,7 @@ function App() {
           move = combination[1];
           break;
         }
-  
+
         // Si el jugador tiene dos en una fila, bloquea la tercera
         if (board[combination[0]] === player && board[combination[1]] === player && board[combination[2]] === null) {
           move = combination[2];
@@ -159,7 +180,7 @@ function App() {
           break;
         }
       }
-  
+
       // Si no se encontró una jugada para ganar o bloquear al jugador, juega aleatoriamente
       if (move === null) {
         const emptyCells = board.reduce((acc, cell, idx) => {
@@ -168,10 +189,10 @@ function App() {
           }
           return acc;
         }, []);
-  
+
         if (emptyCells.length > 0) {
           const lastPlayerPosition = board.indexOf(player);
-  
+
           const distances = emptyCells.map((emptyCell) => {
             const row1 = Math.floor(lastPlayerPosition / 3);
             const col1 = lastPlayerPosition % 3;
@@ -179,11 +200,11 @@ function App() {
             const col2 = emptyCell % 3;
             return Math.abs(row1 - row2) + Math.abs(col1 - col2);
           });
-  
+
           move = emptyCells[distances.indexOf(Math.min(...distances))];
         }
       }
-  
+
       if (move !== null) {
         const delay = GAME_MODE.MACHINE ? 1000 : 0;
         setTimeout(() => {
@@ -199,13 +220,13 @@ function App() {
           setIsBlocked(false);
 
           // Verificar si la máquina ha ganado después de su jugada
-        const newWinner = checkWinnerFrom(newBoard);
-        if (newWinner) {
-          confetti();
-          setWinner(newWinner);
-        } else if (checkEndGame(newBoard)) {
-          setWinner(false);
-        }
+          const newWinner = checkWinnerFrom(newBoard);
+          if (newWinner) {
+            confetti();
+            setWinner(newWinner);
+          } else if (checkEndGame(newBoard)) {
+            setWinner(false);
+          }
         }, delay);
       }
     }
@@ -272,7 +293,7 @@ function App() {
           margin: "10px",
         }}
       >
-        <h5>Version &#40;Beta 2.6&#41;</h5>
+        <h5>Version 2.6</h5>
       </footer>
     </main>
   );
