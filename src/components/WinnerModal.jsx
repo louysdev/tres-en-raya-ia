@@ -13,7 +13,7 @@ export const WinnerModal = ({ winner, resetGame }) => {
         <div className="text">
           <h2>{winnerText}</h2>
 
-          <header className={winner && "win"}>
+          <header className={winner ? "win" : ""}>
             {winner === false ? (
               <SwipeIcon width="50" height="50" />
             ) : (
