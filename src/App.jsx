@@ -114,7 +114,6 @@ function App() {
   useEffect(() => {
 
     if (winner !== null) {
-      console.log("finito")
       return
     }
 
