@@ -300,7 +300,7 @@ function App() {
           margin: "10px",
         }}
       >
-        <h5>Version 2.6</h5>
+        <h5>Version 2.7</h5>
       </footer>
     </main>
   );
