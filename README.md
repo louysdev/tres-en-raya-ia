@@ -33,13 +33,13 @@ Antes de poder utilizar el proyecto asegúrate de que tengas estos programas ins
 1. Clona este repositorio en tu maquina:
 
    ```bash
-   git clone https://github.com/louysdev/tres-en-raya
+   git clone https://github.com/louysdev/tres-en-raya-ia
    ```
 
 2. Entra a la carpeta del repositorio:
 
    ```bash
-   cd tres-en-raya
+   cd tres-en-raya-ia
    ```
 
 3. Instalas las dependencias necesarias:
